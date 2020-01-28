@@ -1,0 +1,26 @@
+
+大致结构：特征图 = featureExtractor(图像)
+	 每个跟踪器的区域特征 = 特征图加权平均，权重由上周期该跟踪器的状态向量经过变换与特征图每个像素点的余弦相似度决定。（相似的区域权重会加大，所谓attentive）
+	 每个跟踪器只将其关注的区域特征输入RNN，得到RNN新状态向量，并将其新状态向量按权重写入特征图，特征图的像素点与该跟踪器相似度越高则擦除越多并写入越多，RNN参数所有跟踪器共享
+	 每个跟踪器由其状态向量得出重建的一系列参数（图像外观，蒙版，尺度坐标，概率，层等），该过程所有跟踪器共享参数。
+	 根据每个跟踪器输出的重建参数，重建图像，与原始图像MSE产生loss，同时加上重建参数中尺度（大小）的惩罚项，防止每个跟踪器尺度太大。
+	 
+
+最重要的一点，TBA的每个跟踪器的RNN是无法获得整个输入图像或特征值的。
+
+还有一点，每个跟踪器只能重建自己那一块，并且最终重建的图像只能对那些跟踪器的块叠加，不会得到原图像。
+
+猜想？如果跟踪器跟踪背景，其他跟踪器也会跟踪相同外观的背景，同时会把类似外观提取特征擦除，导致其他跟踪器提取不出同样的内容，因此只能产生一个重建块，增大loss。可能存在一个假设就是擦除器对背景擦除效果比较好，对不同目标擦除效果比较差（根据提取特征的相似度擦除，背景或多或少都有些相似，不同目标不怎么相似）
+
+
+
+Hi, thanks for your interest. I think the following mechanisms are important for the model to track objects accurately:
+
+    Attention mechanism. Since the receptive field (RF) of each tracker is designed to be a local region on the image (via FCN + NTM, please see the last paragraph in Section 3.1 and "Model Configuration" in appendix A.1), each tracker can only (at most) reconstruct a local region (corresponding to the RF) rather than any part of the image (as each tracker cannot access the information out of its RF, it cannot reconstruct the region out of its RF).
+
+    Tightness constraint. This avoids loose bounding boxes (please see Section 2.4).
+
+    Parameter sharing for different trackers (regularization effect). As the parameters are shared by different trackers, these trackers must have the same behavior---if one tracker just learned to reconstruct arbitrary local region (which might contain no objects), then other trackers would also learn to do this, indicating a high reconstrution loss. Thus, only if each tracker learns to track one object a time and then erase the content of this object from the memory (please see Figure 8), can these trackers well-reconstruct the input image.
+
+
+
