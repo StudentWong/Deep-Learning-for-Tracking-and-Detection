@@ -1,3 +1,5 @@
+clutter在MOT中的意思：when updating one track, all measurements that are detections from targets being followed by other tracks are unwanted measurements and can be treated as clutter
+
 PHD tracker:
 	线性转移+高斯混合（每个高斯的协方差用卡尔慢滤波公式传播）
 	值得注意的是，在每个周期中，跟踪目标的标签经过如下操作，并上birth个，复制(zk+1)个（会有很多重复的，1个先验，zk个后验，zk为观测数），设定截断阈值清除一部分，某种基于马氏距离的类似nms的操作合并很多重复的（同时合并高斯的所有参数），如果还有重复的则标为新的，最后再设置阈值提取成分大于0.5的高斯核作为跟踪预测。
